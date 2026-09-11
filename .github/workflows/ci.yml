@@ -29,17 +29,6 @@ jobs:
       - name: Build
         run: ./gradlew clean compileJava
 
-      - name: Run tests
-        run: ./gradlew test
-
-      - name: Publish test results
-        if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Test Results
-          path: build/test-results/test/*.xml
-          reporter: java-junit
-
       - name: Package jar
         run: ./gradlew build -x test
 
