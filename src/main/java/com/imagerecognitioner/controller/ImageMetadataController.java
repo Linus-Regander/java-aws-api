@@ -29,9 +29,22 @@ public class ImageMetadataController {
      */
     @PostMapping
     public ResponseEntity<ImageMetadata> createImageMetadata(@RequestBody ImageMetadata imageMetadata) {
-        ImageMetadata saved = imageMetadataService.save(imageMetadata);
+        ImageMetadata saved = imageMetadataService.create(imageMetadata);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    /**
+     * Updates an existing ImageMetadata object.
+     * @param imageId the ID of the ImageMetadata object to update
+     * @param imageMetadata the updated ImageMetadata object
+     * @return the updated ImageMetadata object
+     */
+    @PutMapping("/{imageId}")
+    public ResponseEntity<ImageMetadata> updateImageMetadata(@PathVariable String imageId, @RequestBody ImageMetadata imageMetadata) {
+        ImageMetadata saved = imageMetadataService.update(imageId, imageMetadata);
+
+        return ResponseEntity.status(HttpStatus.OK).body(saved);
     }
 
     /**

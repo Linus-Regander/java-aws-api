@@ -1,3 +1,5 @@
+SHELL := cmd.exe
+
 ifeq ($(OS),Windows_NT)
     GRADLE := gradlew.bat
 else

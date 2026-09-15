@@ -4,7 +4,9 @@ import com.imagerecognitioner.exception.ImageMetadataNotFoundException;
 import com.imagerecognitioner.model.ImageMetadata;
 import com.imagerecognitioner.repository.ImageMetadataRepositoryInterface;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -14,19 +16,49 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class ImageMetadataService {
-    private ImageMetadataRepositoryInterface imageMetadataRepository;
+    private final ImageMetadataRepositoryInterface imageMetadataRepository;
 
     public ImageMetadataService(ImageMetadataRepositoryInterface imageMetadataRepository) {
         this.imageMetadataRepository = imageMetadataRepository;
     }
 
-    /**
-     * Saves an ImageMetadata object.
-     * @param imageMetadata the ImageMetadata object to save
-     * @return the saved ImageMetadata object
+    /*
+     * Creates a new ImageMetadata object.
+     * @param imageMetadata the ImageMetadata object to create
+     * @return the created ImageMetadata object
      */
-    public ImageMetadata save(ImageMetadata imageMetadata) {
+    public ImageMetadata create(ImageMetadata imageMetadata) {
+        Instant now = Instant.now();
+
+        imageMetadata.setImageId(UUID.randomUUID().toString());
+        imageMetadata.setCreatedAt(now);
+        imageMetadata.setUpdatedAt(now);
+
         return imageMetadataRepository.save(imageMetadata);
+    }
+
+    /*
+     * Updates an existing ImageMetadata object.
+     * @param imageId the ID of the ImageMetadata object to update
+     * @param imageMetadata the updated ImageMetadata object
+     * @return the updated ImageMetadata object
+     */
+    public ImageMetadata update(String imageId, ImageMetadata imageMetadata) {
+        ImageMetadata existing = imageMetadataRepository.findById(imageId)
+                .orElseThrow(() -> new ImageMetadataNotFoundException(imageId));
+
+        if (imageMetadata.getFileName() != null) {
+            existing.setFileName(imageMetadata.getFileName());
+        }
+        if (imageMetadata.getContentType() != null) {
+            existing.setContentType(imageMetadata.getContentType());
+        }
+        if (imageMetadata.getSizeBytes() != null) {
+            existing.setSizeBytes(imageMetadata.getSizeBytes());
+        }
+        existing.setUpdatedAt(Instant.now());
+
+        return imageMetadataRepository.save(existing);
     }
 
     /**
