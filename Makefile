@@ -1,17 +1,18 @@
+SHELL := cmd.exe
+
 ifeq ($(OS),Windows_NT)
     GRADLE := gradlew.bat
 else
     GRADLE := ./gradlew
 endif
 
-PROJECT_NAME := $(shell $(GRADLE) -q properties --property name | grep "^name:" | cut -d' ' -f2)
-PROJECT_VERSION := $(shell $(GRADLE) -q properties --property version | grep "^version:" | cut -d' ' -f2)
-JAR_FILE := build/libs/$(PROJECT_NAME)-$(PROJECT_VERSION).jar
+PROJECT_NAME = $(shell $(GRADLE) -q properties --property name | grep "^name:" | cut -d' ' -f2)
+PROJECT_VERSION = $(shell $(GRADLE) -q properties --property version | grep "^version:" | cut -d' ' -f2)
+JAR_FILE = build/libs/$(PROJECT_NAME)-$(PROJECT_VERSION).jar
 
-DOCKER_IMAGE := image-recognitioner
 DOCKER_PORT := 8080
 
-.PHONY: run build_jar run_jar test clean docker_build docker_run docker
+.PHONY: run build_jar run_jar test clean up down build logs ps
 
 run:
 	$(GRADLE) bootRun
@@ -29,10 +30,11 @@ test:
 clean:
 	$(GRADLE) clean
 
-docker_build:
-	docker build -t $(DOCKER_IMAGE) .
+start:
+	docker compose up --build
 
-docker_run:
-	docker run -p $(DOCKER_PORT):$(DOCKER_PORT) $(DOCKER_IMAGE)
+stop:
+	docker compose down
 
-docker: docker_build docker_run
+build:
+	docker compose build

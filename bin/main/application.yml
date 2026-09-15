@@ -1,0 +1,6 @@
+app:
+  aws:
+    region: eu-north-1
+    dynamo-db:
+      table-name: ImageMetadata
+      endpoint: http://localhost:8000
