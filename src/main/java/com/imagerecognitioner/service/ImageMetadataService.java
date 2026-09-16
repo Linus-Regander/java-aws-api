@@ -56,6 +56,7 @@ public class ImageMetadataService {
         if (imageMetadata.getSizeBytes() != null) {
             existing.setSizeBytes(imageMetadata.getSizeBytes());
         }
+        
         existing.setUpdatedAt(Instant.now());
 
         return imageMetadataRepository.save(existing);

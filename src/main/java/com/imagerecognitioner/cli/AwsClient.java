@@ -15,6 +15,8 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /**
  * AWS client configuration for DynamoDB integration.
@@ -61,5 +63,43 @@ public class AwsClient {
     @Bean
     public DynamoDbTable<ImageMetadata> imageMetadataTable(DynamoDbEnhancedClient enhancedClient, AwsProperties props) {
         return enhancedClient.table(props.getDynamoDB().getTableName(), TableSchema.fromBean(ImageMetadata.class));
+    }
+
+    /**
+     * Creates an S3Client bean configured with the specified AWS region, default credentials provider, and optional S3 endpoint.
+     * @param awsProperties
+     * @return
+     */
+    @Bean
+    public S3Client s3Client(AwsProperties awsProperties, @Value("${app.aws.s3.endpoint:}") String s3Endpoint) {
+        var builder = S3Client.builder()
+                .region(Region.of(awsProperties.getRegion()))
+                .credentialsProvider(DefaultCredentialsProvider.create());
+
+        if (!s3Endpoint.isBlank()) {
+            builder.endpointOverride(URI.create(s3Endpoint))
+                    .forcePathStyle(true);
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Creates an S3Presigner bean configured with the specified AWS region, default credentials provider, and optional S3 endpoint.
+     * @param awsProperties
+     * @param s3Endpoint
+     * @return
+     */
+    @Bean
+    public S3Presigner s3Presigner(AwsProperties awsProperties, @Value("${app.aws.s3.endpoint:}") String s3Endpoint) {
+        var builder = S3Presigner.builder()
+                .region(Region.of(awsProperties.getRegion()))
+                .credentialsProvider(DefaultCredentialsProvider.create());
+
+        if (!s3Endpoint.isBlank()) {
+            builder.endpointOverride(URI.create(s3Endpoint));
+        }
+
+        return builder.build();
     }
 }

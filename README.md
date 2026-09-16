@@ -8,11 +8,13 @@ Image metadata will be stored in **Amazon DynamoDB**.
 Docker images will be stored in Docker Hub, and project will have CI/CD integration with GitHub.
 
 ## Versioning
-Version: 0.2.0
-- Setup of working ImageMetadata API using Spring Boot and Repository architecture.
-- Setup of DynamoDB using Docker, for local testing of DynamoDB without being fully integrated with AWS.
-- Updates for Github Workflows for push of Docker images to my personal Docker Hub.
-- Addition of Docker Compose for more streamlined build, start, stop and usage of Docker images.
+Version: 0.3.0
+- Setup of working Image API for storing images in S3 and uploading metadata of Image to DynamoDB.
+- Combined metadata and image service layers into one.
+- Updated controller with new API endpoints for Images and Metadata.
+- Added Image model, which contains pre-signed URL of Image in S3 and Metadata.
+
+Next version: Unit tests and revision (if needed).
 
 ### Used Software (Updated after each new version)
 - Java Eclipse Temurin 17
@@ -22,9 +24,10 @@ Version: 0.2.0
 - Docker Compose
 - Github Workflows
 - AWS DynamoDB
+- AWS S3
 
 <br>
 
 **Developed by:** Linus Regander
 
-**Latest update:** 2026-09-15
+**Latest update:** 2026-09-16

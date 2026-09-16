@@ -32,6 +32,40 @@ services:
       || echo 'Table already exists, skipping'
       "
 
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: eu-north-1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:4566/_localstack/health | grep -q '\"s3\": \"available\"'"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  s3-init:
+    image: amazon/aws-cli:latest
+    container_name: s3-init
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_DEFAULT_REGION: eu-north-1
+    entrypoint: >
+      sh -c "
+      aws s3api create-bucket
+      --bucket image-recognitioner-images
+      --region eu-north-1
+      --create-bucket-configuration LocationConstraint=eu-north-1
+      --endpoint-url http://localstack:4566
+      || echo 'Bucket already exists, skipping'
+      "
+
   app:
     build: .
     container_name: image-recognitioner
@@ -41,8 +75,13 @@ services:
       APP_AWS_REGION: eu-north-1
       APP_AWS_DYNAMO-DB_TABLE-NAME: ImageMetadata
       APP_AWS_DYNAMO-DB_ENDPOINT: http://dynamodb-local:8000
+      APP_AWS_S3_BUCKET-NAME: image-recognitioner-images
+      APP_AWS_S3_ENDPOINT: http://localstack:4566
+      APP_AWS_S3_KEY-PREFIX: images/
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
     depends_on:
       dynamodb-init:
+        condition: service_completed_successfully
+      s3-init:
         condition: service_completed_successfully
