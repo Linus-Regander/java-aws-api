@@ -1,6 +1,6 @@
 package com.imagerecognitioner.service;
 
-import com.imagerecognitioner.exception.ImageMetadataNotFoundException;
+import com.imagerecognitioner.exception.ImageExceptions;
 import com.imagerecognitioner.model.ImageMetadata;
 import com.imagerecognitioner.repository.ImageMetadataRepositoryInterface;
 
@@ -45,14 +45,16 @@ public class ImageMetadataService {
      */
     public ImageMetadata update(String imageId, ImageMetadata imageMetadata) {
         ImageMetadata existing = imageMetadataRepository.findById(imageId)
-                .orElseThrow(() -> new ImageMetadataNotFoundException(imageId));
+                .orElseThrow(() -> new ImageExceptions.ImageMetadataNotFoundException(imageId));
 
         if (imageMetadata.getFileName() != null) {
             existing.setFileName(imageMetadata.getFileName());
         }
+
         if (imageMetadata.getContentType() != null) {
             existing.setContentType(imageMetadata.getContentType());
         }
+        
         if (imageMetadata.getSizeBytes() != null) {
             existing.setSizeBytes(imageMetadata.getSizeBytes());
         }
@@ -78,7 +80,7 @@ public class ImageMetadataService {
      */
     public ImageMetadata findById(String imageId) {
         return imageMetadataRepository.findById(imageId)
-                .orElseThrow(() -> new ImageMetadataNotFoundException(imageId));
+                .orElseThrow(() -> new ImageExceptions.ImageMetadataNotFoundException(imageId));
     }
 
     /**
@@ -88,7 +90,7 @@ public class ImageMetadataService {
      */
     public void deleteById(String imageId) {
         if (imageMetadataRepository.findById(imageId).isEmpty()) {
-            throw new ImageMetadataNotFoundException(imageId);
+            throw new ImageExceptions.ImageMetadataNotFoundException(imageId);
         }
 
         imageMetadataRepository.deleteById(imageId);
