@@ -5,7 +5,6 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 
 import java.time.Instant;
 
-
 /**
  * Model class representing metadata for an image stored in DynamoDB.
  * ImageMetadata
@@ -16,9 +15,13 @@ public class ImageMetadata {
     private String imageId;
     private String fileName;
     private String contentType;
+    private String s3Key;
+    private String s3Bucket;
+    private String owner;
     private Long sizeBytes;
     private Instant createdAt;
     private Instant updatedAt;
+    private ImageStatus imageStatus;
 
     /**
      * Gets the ID of the image.
@@ -51,6 +54,54 @@ public class ImageMetadata {
      */
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    /**
+     * Gets the S3 key for the image.
+     * @return the S3 key
+     */
+    public String getS3Key() {
+        return s3Key;
+    }
+
+    /**
+     * Sets the S3 key for the image.
+     * @param s3Key the S3 key
+     */
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
+    }
+
+    /**
+     * Gets the S3 bucket name for the image.
+     * @return the S3 bucket name
+     */
+    public String getS3Bucket() {
+        return s3Bucket;
+    }
+
+    /**
+     * Sets the S3 bucket name for the image.
+     * @param s3Bucket the S3 bucket name
+     */
+    public void setS3Bucket(String s3Bucket) {
+        this.s3Bucket = s3Bucket;
+    }
+
+    /**
+     * Gets the owner of the image.
+     * @return the owner
+     */
+    public String getOwner() {
+        return owner;
+    }
+
+    /**
+     * Sets the owner of the image.
+     * @param owner the owner
+     */
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     /**
@@ -115,5 +166,21 @@ public class ImageMetadata {
      */
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    /**
+     * Gets the status of the image.
+     * @return the image status
+     */
+    public ImageStatus getImageStatus() {
+        return imageStatus;
+    }
+
+    /**
+     * Sets the status of the image.
+     * @param imageStatus the image status
+     */
+    public void setImageStatus(ImageStatus imageStatus) {
+        this.imageStatus = imageStatus;
     }
 }
