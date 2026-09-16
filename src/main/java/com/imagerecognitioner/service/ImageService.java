@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.imagerecognitioner.model.ImageMetadata;
 import com.imagerecognitioner.model.ImageStatus;
 import com.imagerecognitioner.model.Image;
+import com.imagerecognitioner.cli.AwsProperties;
 
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.SdkClientException;
