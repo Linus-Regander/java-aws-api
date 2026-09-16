@@ -30,11 +30,11 @@ test:
 clean:
 	$(GRADLE) clean
 
-start:
+start_container:
 	docker compose up --build
 
-stop:
+stop_container:
 	docker compose down
 
-build:
+build_container:
 	docker compose build

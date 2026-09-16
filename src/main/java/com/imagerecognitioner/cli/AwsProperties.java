@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.aws")
 public class AwsProperties {
     private String region;
-
     private DynamoDB dynamoDB = new DynamoDB();
     private S3 s3 = new S3();
 

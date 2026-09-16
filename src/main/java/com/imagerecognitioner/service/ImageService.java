@@ -24,10 +24,12 @@ import java.time.Duration;
 public class ImageService {
     private final ImageStorageService imageStorageService;
     private final ImageMetadataService imageMetadataService;
+    private final String keyPrefix;
 
-    public ImageService(ImageStorageService imageStorageService, ImageMetadataService imageMetadataService) {
+    public ImageService(ImageStorageService imageStorageService, ImageMetadataService imageMetadataService, AwsProperties awsProperties) {
         this.imageStorageService = imageStorageService;
         this.imageMetadataService = imageMetadataService;
+        this.keyPrefix = awsProperties.getS3().getKeyPrefix();
     }
 
     /**
@@ -80,13 +82,7 @@ public class ImageService {
 
         imageStorageService.replace(key, file);
 
-        try {
-            return imageMetadataService.update(imageId, extractMetadata(file, existingMetadata.getOwner(), imageId, key));
-        } catch (AwsServiceException | SdkClientException e) {
-            imageStorageService.replace(key, file);
-            
-            throw e;
-        }
+        return imageMetadataService.update(imageId, extractMetadata(file, existingMetadata.getOwner(), imageId, key));
     }
 
     /**
@@ -96,22 +92,18 @@ public class ImageService {
      * @return an Image object containing the metadata and presigned URL
      */
     public Image selectImage(String imageId, Duration expiry) {
-        try {
-            ImageMetadata metadata = imageMetadataService.findById(imageId);
+        ImageMetadata metadata = imageMetadataService.findById(imageId);
 
-            String key = metadata.getS3Key();
+        String key = metadata.getS3Key();
 
-            URL presignedUrl = imageStorageService.getPresignedUrl(key, expiry);
+        URL presignedUrl = imageStorageService.getPresignedUrl(key, expiry);
 
-            Image image = new Image();
+        Image image = new Image();
 
-            image.setPresignedUrl(presignedUrl);
-            image.setImageMetadata(metadata);
+        image.setPresignedUrl(presignedUrl);
+        image.setImageMetadata(metadata);
 
-            return image;
-        } catch (AwsServiceException | SdkClientException e) {
-            throw e;
-        }
+        return image;
     }
 
     /**
@@ -121,11 +113,7 @@ public class ImageService {
      * @return the updated metadata of the image
      */
     public ImageMetadata updateMetadata(String imageId, ImageMetadata imageMetadata) {
-        try {
-            return imageMetadataService.update(imageId, imageMetadata);
-        } catch (AwsServiceException | SdkClientException e) {
-            throw e;
-        }
+        return imageMetadataService.update(imageId, imageMetadata);
     }
 
     /**
@@ -136,12 +124,8 @@ public class ImageService {
         ImageMetadata existingMetadata = imageMetadataService.findById(imageId);
         String key = existingMetadata.getS3Key();
 
-        try {
-            imageStorageService.delete(key);
-            imageMetadataService.deleteById(imageId);
-        } catch (AwsServiceException | SdkClientException e) {
-            throw e;
-        }
+        imageStorageService.delete(key);
+        imageMetadataService.deleteById(imageId);
     }
 
     private ImageMetadata extractMetadata(MultipartFile file, String owner, String id, String key) {
@@ -165,7 +149,7 @@ public class ImageService {
         if (originalFilename != null && originalFilename.contains(".")) {
             extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
         }
-
-        return "images/" + owner + "/" + id + extension;
+        
+        return keyPrefix + owner + "/" + id + extension;
     }
 }
