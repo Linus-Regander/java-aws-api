@@ -1,5 +1,3 @@
-SHELL := cmd.exe
-
 ifeq ($(OS),Windows_NT)
     GRADLE := gradlew.bat
 else
@@ -14,8 +12,11 @@ DOCKER_PORT := 8080
 
 .PHONY: run build_jar run_jar test clean up down build logs ps
 
-run:
+run_gradle: build_gradle
 	$(GRADLE) bootRun
+
+build_gradle:
+	$(GRADLE) build
 
 build_jar:
 	$(GRADLE) build -x test
