@@ -26,8 +26,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew clean compileJava
+      - name: Test with coverage
+        run: ./gradlew clean test jacocoTestReport
+
+      - name: Upload test coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage-report
+          path: build/reports/jacoco/test/html
+          retention-days: 7
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: build/reports/jacoco/test/jacocoTestReport.xml
+          flags: unittests
+          name: java-aws-api
+          fail_ci_if_error: true
 
       - name: Package jar
         run: ./gradlew build -x test

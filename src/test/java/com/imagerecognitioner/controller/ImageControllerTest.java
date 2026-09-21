@@ -7,15 +7,19 @@ import com.imagerecognitioner.service.ImageService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -23,20 +27,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Web-layer tests for ImageController.
- * Only the controller is loaded (via @WebMvcTest); ImageService is mocked,
- * so no DynamoDB, S3, or real service logic is touched here.
+ * Unit tests for ImageController.
+ * ImageService is mocked and MockMvc is configured with the controller directly,
+ * so no Spring context, DynamoDB, S3, or real service logic is touched here.
  */
-@WebMvcTest(ImageController.class)
+@ExtendWith(MockitoExtension.class)
 class ImageControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Mock
     private ImageService imageService;
 
-    @Autowired
+    @InjectMocks
+    private ImageController imageController;
+
     private ObjectMapper objectMapper;
 
     private static final String IMAGE_ID = "img-123";
@@ -46,54 +51,125 @@ class ImageControllerTest {
     @BeforeEach
     void setUp() {
         sampleMetadata = new ImageMetadata();
+        objectMapper = new ObjectMapper();
+        mockMvc = MockMvcBuilders.standaloneSetup(imageController).build();
     }
 
     @Test
-    void getImageMetadata_returnsOkAndMetadata() throws Exception {
-        when(imageService.selectImageMetadata(IMAGE_ID)).thenReturn(sampleMetadata);
+    void getImageMetadata_handlesEachImageId() throws Exception {
+        Map<String, ControllerTestCase> testCases = Map.of(
+            "known image", () -> {
+                when(imageService.selectImageMetadata(IMAGE_ID)).thenReturn(sampleMetadata);
 
-        mockMvc.perform(get("/api/images/{imageId}/metadata", IMAGE_ID))
-            .andExpect(status().isOk());
+                mockMvc.perform(get("/api/images/{imageId}/metadata", IMAGE_ID))
+                    .andExpect(status().isOk());
 
-        verify(imageService).selectImageMetadata(IMAGE_ID);
+                verify(imageService).selectImageMetadata(IMAGE_ID);
+            },
+            "another image", () -> {
+                String anotherImageId = "img-456";
+                when(imageService.selectImageMetadata(anotherImageId)).thenReturn(sampleMetadata);
+
+                mockMvc.perform(get("/api/images/{imageId}/metadata", anotherImageId))
+                    .andExpect(status().isOk());
+
+                verify(imageService).selectImageMetadata(anotherImageId);
+            });
+
+        runTestCases(testCases);
     }
 
     @Test
-    void getAllImageMetadata_returnsOkAndList() throws Exception {
-        when(imageService.selectAllImageMetadata()).thenReturn(List.of(sampleMetadata));
+    void getAllImageMetadata_returnsEachConfiguredResult() throws Exception {
+        Map<String, ControllerTestCase> testCases = Map.of(
+            "one metadata item", () -> {
+                when(imageService.selectAllImageMetadata()).thenReturn(List.of(sampleMetadata));
 
-        mockMvc.perform(get("/api/images/metadata"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$.length()").value(1));
+                mockMvc.perform(get("/api/images/metadata"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(1));
 
-        verify(imageService).selectAllImageMetadata();
+                verify(imageService).selectAllImageMetadata();
+            },
+            "no metadata items", () -> {
+                when(imageService.selectAllImageMetadata()).thenReturn(List.of());
+
+                mockMvc.perform(get("/api/images/metadata"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+
+                verify(imageService).selectAllImageMetadata();
+            });
+
+        runTestCases(testCases);
     }
 
     @Test
-    void publishImage_returnsCreated() throws Exception {
+    void publishImage_returnsCreatedForEachUpload() throws Exception {
+        Map<String, ControllerTestCase> testCases = Map.of(
+            "jpeg upload", () -> publishImage("cat.jpg", "someOwner"),
+            "png upload", () -> publishImage("landscape.png", "anotherOwner"));
+
+        runTestCases(testCases);
+    }
+
+    @Test
+    void updateImage_returnsOkForEachReplacement() throws Exception {
+        Map<String, ControllerTestCase> testCases = Map.of(
+            "replace jpeg", () -> replaceImage("cat-updated.jpg", IMAGE_ID),
+            "replace png", () -> replaceImage("landscape-updated.png", "img-456"));
+
+        runTestCases(testCases);
+    }
+
+    @Test
+    void updateImageMetadata_returnsOkForEachMetadataUpdate() throws Exception {
+        Map<String, ControllerTestCase> testCases = Map.of(
+            "pending metadata", () -> updateImageMetadata(IMAGE_ID, sampleMetadata),
+            "metadata for another image", () -> updateImageMetadata("img-456", sampleMetadata));
+
+        runTestCases(testCases);
+    }
+
+    @Test
+    void selectImage_passesEachExpiryOption() throws Exception {
+        Map<String, ControllerTestCase> testCases = Map.of(
+            "without expiry", () -> selectImage(null),
+            "five minute expiry", () -> selectImage(300L),
+            "one hour expiry", () -> selectImage(3600L));
+
+        runTestCases(testCases);
+    }
+
+    @Test
+    void deleteImage_returnsNoContentForEachImageId() throws Exception {
+        Map<String, ControllerTestCase> testCases = Map.of(
+            "known image", () -> deleteImage(IMAGE_ID),
+            "another image", () -> deleteImage("img-456"));
+
+        runTestCases(testCases);
+    }
+
+    private void publishImage(String fileName, String owner) throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-            "file", "cat.jpg", MediaType.IMAGE_JPEG_VALUE, "fake-image-bytes".getBytes());
-
-        when(imageService.publishImage(any(), eq("someOwner"))).thenReturn(sampleMetadata);
+            "file", fileName, MediaType.IMAGE_JPEG_VALUE, "fake-image-bytes".getBytes());
+        when(imageService.publishImage(any(), eq(owner))).thenReturn(sampleMetadata);
 
         mockMvc.perform(multipart("/api/images")
                 .file(file)
-                .param("owner", "someOwner"))
+                .param("owner", owner))
             .andExpect(status().isCreated());
 
-        verify(imageService).publishImage(any(), eq("someOwner"));
+        verify(imageService).publishImage(any(), eq(owner));
     }
 
-    @Test
-    void updateImage_returnsOk() throws Exception {
+    private void replaceImage(String fileName, String imageId) throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-            "file", "cat-updated.jpg", MediaType.IMAGE_JPEG_VALUE, "new-bytes".getBytes());
+            "file", fileName, MediaType.IMAGE_JPEG_VALUE, "new-bytes".getBytes());
+        when(imageService.replaceImage(any(), eq(imageId))).thenReturn(sampleMetadata);
 
-        when(imageService.replaceImage(any(), eq(IMAGE_ID))).thenReturn(sampleMetadata);
-
-        // MockMvc's multipart() builds a POST by default, so switch it to PUT explicitly.
-        mockMvc.perform(multipart("/api/images/{imageId}", IMAGE_ID)
+        mockMvc.perform(multipart("/api/images/{imageId}", imageId)
                 .file(file)
                 .with(request -> {
                     request.setMethod("PUT");
@@ -101,57 +177,60 @@ class ImageControllerTest {
                 }))
             .andExpect(status().isOk());
 
-        verify(imageService).replaceImage(any(), eq(IMAGE_ID));
+        verify(imageService).replaceImage(any(), eq(imageId));
     }
 
+    private void updateImageMetadata(String imageId, ImageMetadata metadata) throws Exception {
+        when(imageService.updateMetadata(eq(imageId), any(ImageMetadata.class))).thenReturn(metadata);
 
-    @Test
-    void updateImageMetadata_returnsOk() throws Exception {
-        when(imageService.updateMetadata(eq(IMAGE_ID), any(ImageMetadata.class)))
-            .thenReturn(sampleMetadata);
-
-        mockMvc.perform(patch("/api/images/{imageId}/metadata", IMAGE_ID)
+        mockMvc.perform(patch("/api/images/{imageId}/metadata", imageId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(sampleMetadata)))
+                .content(objectMapper.writeValueAsString(metadata)))
             .andExpect(status().isOk());
 
-        verify(imageService).updateMetadata(eq(IMAGE_ID), any(ImageMetadata.class));
+        verify(imageService).updateMetadata(eq(imageId), any(ImageMetadata.class));
     }
 
-    @Test
-    void selectImage_withoutExpiry_returnsOk() throws Exception {
+    private void selectImage(Long expirySeconds) throws Exception {
         Image image = new Image();
-        // TODO: set real fields on Image, e.g. image.setMetadata(sampleMetadata); image.setUrl("https://...");
+        Duration expiry = expirySeconds == null ? null : Duration.ofSeconds(expirySeconds);
+        when(imageService.selectImage(IMAGE_ID, expiry)).thenReturn(image);
 
-        when(imageService.selectImage(IMAGE_ID, null)).thenReturn(image);
+        MockHttpServletRequestBuilder request = get("/api/images/{imageId}", IMAGE_ID);
+        if (expirySeconds != null) {
+            request.param("expiry", expirySeconds.toString());
+        }
 
-        mockMvc.perform(get("/api/images/{imageId}", IMAGE_ID))
+        mockMvc.perform(request)
             .andExpect(status().isOk());
 
-        verify(imageService).selectImage(IMAGE_ID, null);
+        verify(imageService).selectImage(IMAGE_ID, expiry);
     }
 
-    @Test
-    void selectImage_withExpiry_passesDurationToService() throws Exception {
-        Image image = new Image();
-        when(imageService.selectImage(eq(IMAGE_ID), eq(Duration.ofSeconds(300)))).thenReturn(image);
+    private void deleteImage(String imageId) throws Exception {
+        doNothing().when(imageService).deleteImage(imageId);
 
-        mockMvc.perform(get("/api/images/{imageId}", IMAGE_ID)
-                .param("expiry", "300"))
-            .andExpect(status().isOk());
-
-        verify(imageService).selectImage(IMAGE_ID, Duration.ofSeconds(300));
-    }
-
-    // ---------- DELETE /api/images/{imageId} ----------
-
-    @Test
-    void deleteImage_returnsNoContent() throws Exception {
-        doNothing().when(imageService).deleteImage(IMAGE_ID);
-
-        mockMvc.perform(delete("/api/images/{imageId}", IMAGE_ID))
+        mockMvc.perform(delete("/api/images/{imageId}", imageId))
             .andExpect(status().isNoContent());
 
-        verify(imageService).deleteImage(IMAGE_ID);
+        verify(imageService).deleteImage(imageId);
+    }
+
+    private void runTestCases(Map<String, ControllerTestCase> testCases) throws Exception {
+        for (Map.Entry<String, ControllerTestCase> testCase : testCases.entrySet()) {
+            reset(imageService);
+            try {
+                testCase.getValue().run();
+            } catch (AssertionError assertionError) {
+                throw new AssertionError("Test case failed: " + testCase.getKey(), assertionError);
+            } catch (Exception exception) {
+                throw new AssertionError("Test case failed: " + testCase.getKey(), exception);
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface ControllerTestCase {
+        void run() throws Exception;
     }
 }
