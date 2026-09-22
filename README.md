@@ -19,25 +19,22 @@ Docker images are stored in Docker Hub, with CI/CD integration via GitHub Action
 
 ## Versioning
 
-**Current version:** 0.5.0
-- Added tags and updated README.md.
-- Added unit tests for controller, repository, service, exception, configuration and AWS client classes.
-- Added a custom Java Test Engineer agent for consistent table-driven test development and agentic workflow.
-- Added tests and code coverage reporting to the CI/CD workflow.
-- Added JaCoCo and Codecov integration with an automatically updated coverage badge.
-- Fixed trace ID generation when requests do not include a trace ID header.
+**Current version:** 0.6.0
+- Added terraform integration.
+- Removed init in Docker for AWS S3 and DynamoDB, now handled by Terraform and Localstack.
+- Finetuned Localstack integration with authentication, for local setup of AWS services.
 
-**Next version:** Terraform integration for live AWS integration.
+**Next version:** Integration and implementation of AWS Reckognition.
 
 ## Tech Stack
 | Category | Tools |
 |---|---|
-| Language | Java 17 (Eclipse Temurin) |
-| Framework | Spring Boot |
-| Build | Gradle |
-| Containers | Docker, Docker Compose |
-| CI/CD | GitHub Actions, Agent, CoPilot |
-| Cloud | AWS DynamoDB, AWS S3 |
+| Language | **Java 17** (Eclipse Temurin) |
+| Framework | **Spring Boot** |
+| Build | Gradle, **Terraform** |
+| Containers | **Docker**, Docker Compose |
+| CI/CD (GitHub) | **Actions**, CoPilot Agent, Workflows |
+| Cloud (AWS) | **DynamoDB**, **S3**, Localstack |
 
 ---
 

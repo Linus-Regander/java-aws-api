@@ -1,0 +1,26 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+
+# Git
+.git/
+.gitignore
+
+# Build output (rebuilt inside the container anyway)
+build/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Docs (not needed inside the image)
+README.md
