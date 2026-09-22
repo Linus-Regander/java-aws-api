@@ -30,3 +30,18 @@ build/
 *.iml
 out/
 bin/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+terraform/*.tfvars.json
+terraform/crash.log
+terraform/crash.*.log
+# Keep terraform/.terraform.lock.hcl committed — do NOT ignore it
+
+# Secrets / env
+.env
+.env.*
+!.env.example
