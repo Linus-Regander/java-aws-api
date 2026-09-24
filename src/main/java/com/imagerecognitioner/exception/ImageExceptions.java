@@ -18,4 +18,16 @@ public final class ImageExceptions {
             super(message);
         }
     }
+
+    public static class InvalidModerationConfidenceException extends RuntimeException {
+        public InvalidModerationConfidenceException(float confidence) {
+            super("Invalid moderation confidence value: " + confidence + ". It must be between 0 and 100.");
+        }
+    }
+
+    public static class ImageModerationException extends RuntimeException {
+        public ImageModerationException(java.util.List<com.imagerecognitioner.model.image.ImageLabel> labels) {
+            super("Image moderation failed. Detected inappropriate content with labels: " + labels);
+        }
+    }
 }

@@ -1,12 +1,13 @@
 package com.imagerecognitioner.repository;
 
-import com.imagerecognitioner.model.ImageMetadata;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
+
+import com.imagerecognitioner.model.image.ImageMetadata;
 
 /**
  * Repository implementation for managing ImageMetadata objects in DynamoDB.

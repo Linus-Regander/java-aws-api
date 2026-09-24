@@ -3,10 +3,13 @@ package com.imagerecognitioner.service;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.imagerecognitioner.model.ImageMetadata;
-import com.imagerecognitioner.model.ImageStatus;
-import com.imagerecognitioner.model.Image;
 import com.imagerecognitioner.cli.AwsProperties;
+import com.imagerecognitioner.model.image.ImageResponse;
+import com.imagerecognitioner.model.image.ImageMetadata;
+import com.imagerecognitioner.model.image.ImageStatus;
+import com.imagerecognitioner.model.image.ImageLabel;
+import com.imagerecognitioner.model.moderation.ModerationResult;
+import com.imagerecognitioner.exception.ImageExceptions;
 
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -25,12 +28,16 @@ import java.time.Duration;
 public class ImageService {
     private final ImageStorageService imageStorageService;
     private final ImageMetadataService imageMetadataService;
+    private final ImageRecognitionService imageRecognitionService;
     private final String keyPrefix;
+    private final String bucketName;
 
-    public ImageService(ImageStorageService imageStorageService, ImageMetadataService imageMetadataService, AwsProperties awsProperties) {
+    public ImageService(ImageStorageService imageStorageService, ImageMetadataService imageMetadataService, ImageRecognitionService imageRecognitionService, AwsProperties awsProperties) {
         this.imageStorageService = imageStorageService;
         this.imageMetadataService = imageMetadataService;
+        this.imageRecognitionService = imageRecognitionService;
         this.keyPrefix = awsProperties.getS3().getKeyPrefix();
+        this.bucketName = awsProperties.getS3().getBucketName();
     }
 
     /**
@@ -56,14 +63,22 @@ public class ImageService {
      * @param owner the owner of the image
      * @return the metadata of the published image
      */
-    public ImageMetadata publishImage(MultipartFile file, String owner) {
+    public ImageMetadata publishImage(MultipartFile file, String owner, Float minConfidence) {
         String id = UUID.randomUUID().toString();
         String key = buildKey(owner, id, file.getOriginalFilename());
 
-        imageStorageService.upload(key, file);
-
         try {
-            return imageMetadataService.create(extractMetadata(file, owner, id, key));
+            imageStorageService.upload(key, file);
+
+            ModerationResult moderationResult = imageRecognitionService.moderateContent(bucketName, key, minConfidence);
+            if (moderationResult.isFlagged()) {
+                // deletes image from bucket, if it is flagged as inappropriate.
+                imageStorageService.delete(key);
+
+                throw new ImageExceptions.ImageModerationException(moderationResult.getLabels());
+            }
+
+            return imageMetadataService.create(extractMetadata(file, owner, id, key, moderationResult.getLabels()));
         } catch (AwsServiceException | SdkClientException e) {
             imageStorageService.delete(key);
             
@@ -77,13 +92,31 @@ public class ImageService {
      * @param imageId the ID of the existing image to replace
      * @return the updated metadata of the replaced image
      */
-    public ImageMetadata replaceImage(MultipartFile file, String imageId) {
+    public ImageMetadata replaceImage(MultipartFile file, String imageId, Float minConfidence) {
         ImageMetadata existingMetadata = imageMetadataService.findById(imageId);
         String key = existingMetadata.getS3Key();
+        String temporaryKey = buildKey(existingMetadata.getOwner(), imageId, file.getOriginalFilename());
 
-        imageStorageService.replace(key, file);
+        try {
+            imageStorageService.upload(temporaryKey, file);
 
-        return imageMetadataService.update(imageId, extractMetadata(file, existingMetadata.getOwner(), imageId, key));
+            ModerationResult moderationResult = imageRecognitionService.moderateContent(bucketName, temporaryKey, minConfidence);
+            if (moderationResult.isFlagged()) {
+                // deletes image from bucket, if it is flagged as inappropriate.
+                imageStorageService.delete(temporaryKey);
+
+                throw new ImageExceptions.ImageModerationException(moderationResult.getLabels());
+            }
+
+            imageStorageService.replace(key, file);
+            imageStorageService.delete(temporaryKey);
+
+            return imageMetadataService.update(imageId, extractMetadata(file, existingMetadata.getOwner(), imageId, key, moderationResult.getLabels()));
+        } catch (AwsServiceException | SdkClientException e) {
+            imageStorageService.delete(temporaryKey);
+
+            throw e;
+        }
     }
 
     /**
@@ -92,14 +125,14 @@ public class ImageService {
      * @param expiry the duration for which the presigned URL should be valid
      * @return an Image object containing the metadata and presigned URL
      */
-    public Image selectImage(String imageId, Duration expiry) {
+    public ImageResponse selectImage(String imageId, Duration expiry) {
         ImageMetadata metadata = imageMetadataService.findById(imageId);
 
         String key = metadata.getS3Key();
 
         URL presignedUrl = imageStorageService.getPresignedUrl(key, expiry);
 
-        Image image = new Image();
+        ImageResponse image = new ImageResponse();
 
         image.setPresignedUrl(presignedUrl);
         image.setImageMetadata(metadata);
@@ -129,17 +162,19 @@ public class ImageService {
         imageMetadataService.deleteById(imageId);
     }
 
-    private ImageMetadata extractMetadata(MultipartFile file, String owner, String id, String key) {
+    private ImageMetadata extractMetadata(MultipartFile file, String owner, String id, String key, List<ImageLabel> labels) {
         ImageMetadata metadata = new ImageMetadata();
 
         metadata.setImageId(id);
         metadata.setS3Key(key);
+        metadata.setS3Bucket(bucketName);
         metadata.setFileName(file.getOriginalFilename());
         metadata.setContentType(file.getContentType());
         metadata.setSizeBytes(file.getSize());
         metadata.setOwner(owner);
         metadata.setCreatedAt(Instant.now());
         metadata.setImageStatus(ImageStatus.PENDING);
+        metadata.setLabels(labels);
 
         return metadata;
     }

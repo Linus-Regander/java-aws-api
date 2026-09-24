@@ -1,9 +1,13 @@
 package com.imagerecognitioner.service;
 
 import com.imagerecognitioner.cli.AwsProperties;
-import com.imagerecognitioner.model.Image;
-import com.imagerecognitioner.model.ImageMetadata;
-import com.imagerecognitioner.model.ImageStatus;
+import com.imagerecognitioner.exception.ImageExceptions;
+import com.imagerecognitioner.model.image.ImageResponse;
+import com.imagerecognitioner.model.image.ImageMetadata;
+import com.imagerecognitioner.model.image.ImageStatus;
+import com.imagerecognitioner.model.image.ImageLabel;
+import com.imagerecognitioner.model.moderation.ModerationResult;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,13 +46,19 @@ class ImageServiceTest {
     @Mock
     private ImageMetadataService imageMetadataService;
 
+    @Mock
+    private ImageRecognitionService imageRecognitionService;
+
     private ImageService imageService;
 
     @BeforeEach
     void setUp() {
         AwsProperties properties = new AwsProperties();
         properties.getS3().setKeyPrefix("images/");
-        imageService = new ImageService(imageStorageService, imageMetadataService, properties);
+        properties.getS3().setBucketName("image-bucket");
+        imageService = new ImageService(imageStorageService, imageMetadataService, imageRecognitionService, properties);
+        lenient().when(imageRecognitionService.moderateContent(anyString(), anyString(), nullable(Float.class)))
+            .thenReturn(new ModerationResult(false, List.of()));
     }
 
     @Test
@@ -100,7 +113,7 @@ class ImageServiceTest {
         ImageMetadata created = metadata("created", "created-key", owner);
         when(imageMetadataService.create(any(ImageMetadata.class))).thenReturn(created);
 
-        assertSame(created, imageService.publishImage(file, owner));
+        assertSame(created, imageService.publishImage(file, owner, null));
 
         ArgumentCaptor<String> key = ArgumentCaptor.forClass(String.class);
         verify(imageStorageService).upload(key.capture(), argThat(actual -> actual == file));
@@ -128,11 +141,25 @@ class ImageServiceTest {
         runTestCases(testCases);
     }
 
+    @Test
+    void publishImage_deletesAndRejectsFlaggedContent() {
+        MultipartFile file = file("photo.jpg", "image/jpeg", "bytes");
+        List<ImageLabel> labels = List.of(new ImageLabel("Explicit Nudity", 95.0f));
+        when(imageRecognitionService.moderateContent(anyString(), anyString(), nullable(Float.class)))
+                .thenReturn(new ModerationResult(true, labels));
+
+        assertThrows(ImageExceptions.ImageModerationException.class,
+                () -> imageService.publishImage(file, "alice", null));
+
+        verify(imageStorageService).delete(argThat(key -> key.startsWith("images/alice/")));
+        verify(imageMetadataService, org.mockito.Mockito.never()).create(any());
+    }
+
     private void publishFailure(RuntimeException failure) {
         MultipartFile file = file("photo.png", "image/png", "bytes");
         when(imageMetadataService.create(any(ImageMetadata.class))).thenThrow(failure);
 
-        assertThrows(failure.getClass(), () -> imageService.publishImage(file, "alice"));
+        assertThrows(failure.getClass(), () -> imageService.publishImage(file, "alice", null));
 
         ArgumentCaptor<String> key = ArgumentCaptor.forClass(String.class);
         verify(imageStorageService).upload(key.capture(), argThat(actual -> actual == file));
@@ -148,7 +175,7 @@ class ImageServiceTest {
         when(imageMetadataService.findById("img-1")).thenReturn(existing);
         when(imageMetadataService.update(eq("img-1"), any(ImageMetadata.class))).thenReturn(updated);
 
-        assertSame(updated, imageService.replaceImage(file, "img-1"));
+        assertSame(updated, imageService.replaceImage(file, "img-1", null));
 
         verify(imageStorageService).replace(existing.getS3Key(), file);
         ArgumentCaptor<ImageMetadata> replacement = ArgumentCaptor.forClass(ImageMetadata.class);
@@ -166,7 +193,7 @@ class ImageServiceTest {
         when(imageMetadataService.findById("img-1")).thenReturn(metadata);
         when(imageStorageService.getPresignedUrl(metadata.getS3Key(), expiry)).thenReturn(url);
 
-        Image result = imageService.selectImage("img-1", expiry);
+        ImageResponse result = imageService.selectImage("img-1", expiry);
 
         assertSame(metadata, result.getImageMetadata());
         assertEquals(url, result.getPresignedUrl());

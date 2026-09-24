@@ -1,7 +1,5 @@
 package com.imagerecognitioner.cli;
 
-import com.imagerecognitioner.model.ImageMetadata;
-
 import java.net.URI;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -9,11 +7,14 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.imagerecognitioner.model.image.ImageMetadata;
+
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -98,6 +99,25 @@ public class AwsClient {
 
         if (!s3Endpoint.isBlank()) {
             builder.endpointOverride(URI.create(s3Endpoint));
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Creates a RekognitionClient bean configured with the specified AWS region, default credentials provider, and optional Rekognition endpoint.
+     * @param awsProperties
+     * @param endpoint
+     * @return
+     */
+    @Bean
+    public RekognitionClient rekognitionClient(AwsProperties awsProperties, @Value("${app.aws.rekognition.endpoint:}") String endpoint) {
+        var builder = RekognitionClient.builder()
+                .region(Region.of(awsProperties.getRegion()))
+                .credentialsProvider(DefaultCredentialsProvider.create());
+
+        if (!endpoint.isBlank()) {
+            builder.endpointOverride(URI.create(endpoint));
         }
 
         return builder.build();

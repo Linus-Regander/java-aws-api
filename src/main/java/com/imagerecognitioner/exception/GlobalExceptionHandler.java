@@ -38,6 +38,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, ex);
     }
 
+    @ExceptionHandler(InvalidModerationConfidenceException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidModerationConfidence(InvalidModerationConfidenceException ex, WebRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, ex);
+    }
+
+    @ExceptionHandler(ImageModerationException.class)
+    public ResponseEntity<ErrorResponse> handleImageModeration(ImageModerationException ex, WebRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, ex);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, WebRequest request) {
         String message = ex.getBindingResult().getFieldErrors().stream()

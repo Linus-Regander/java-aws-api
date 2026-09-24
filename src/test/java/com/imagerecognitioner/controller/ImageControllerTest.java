@@ -1,8 +1,8 @@
 package com.imagerecognitioner.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.imagerecognitioner.model.Image;
-import com.imagerecognitioner.model.ImageMetadata;
+import com.imagerecognitioner.model.image.ImageResponse;
+import com.imagerecognitioner.model.image.ImageMetadata;
 import com.imagerecognitioner.service.ImageService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -154,20 +154,20 @@ class ImageControllerTest {
     private void publishImage(String fileName, String owner) throws Exception {
         MockMultipartFile file = new MockMultipartFile(
             "file", fileName, MediaType.IMAGE_JPEG_VALUE, "fake-image-bytes".getBytes());
-        when(imageService.publishImage(any(), eq(owner))).thenReturn(sampleMetadata);
+        when(imageService.publishImage(any(), eq(owner), any())).thenReturn(sampleMetadata);
 
         mockMvc.perform(multipart("/api/images")
                 .file(file)
                 .param("owner", owner))
             .andExpect(status().isCreated());
 
-        verify(imageService).publishImage(any(), eq(owner));
+        verify(imageService).publishImage(any(), eq(owner), isNull());
     }
 
     private void replaceImage(String fileName, String imageId) throws Exception {
         MockMultipartFile file = new MockMultipartFile(
             "file", fileName, MediaType.IMAGE_JPEG_VALUE, "new-bytes".getBytes());
-        when(imageService.replaceImage(any(), eq(imageId))).thenReturn(sampleMetadata);
+        when(imageService.replaceImage(any(), eq(imageId), any())).thenReturn(sampleMetadata);
 
         mockMvc.perform(multipart("/api/images/{imageId}", imageId)
                 .file(file)
@@ -177,7 +177,7 @@ class ImageControllerTest {
                 }))
             .andExpect(status().isOk());
 
-        verify(imageService).replaceImage(any(), eq(imageId));
+        verify(imageService).replaceImage(any(), eq(imageId), isNull());
     }
 
     private void updateImageMetadata(String imageId, ImageMetadata metadata) throws Exception {
@@ -192,7 +192,7 @@ class ImageControllerTest {
     }
 
     private void selectImage(Long expirySeconds) throws Exception {
-        Image image = new Image();
+        ImageResponse image = new ImageResponse();
         Duration expiry = expirySeconds == null ? null : Duration.ofSeconds(expirySeconds);
         when(imageService.selectImage(IMAGE_ID, expiry)).thenReturn(image);
 

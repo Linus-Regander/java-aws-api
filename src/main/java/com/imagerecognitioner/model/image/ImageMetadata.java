@@ -1,9 +1,10 @@
-package com.imagerecognitioner.model;
+package com.imagerecognitioner.model.image;
 
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Model class representing metadata for an image stored in DynamoDB.
@@ -22,6 +23,7 @@ public class ImageMetadata {
     private Instant createdAt;
     private Instant updatedAt;
     private ImageStatus imageStatus;
+    private List<ImageLabel> labels;
 
     /**
      * Gets the ID of the image.
@@ -182,5 +184,21 @@ public class ImageMetadata {
      */
     public void setImageStatus(ImageStatus imageStatus) {
         this.imageStatus = imageStatus;
+    }
+
+    /**
+     * Gets the list of labels associated with the image.
+     * @return the list of image labels
+     */
+    public List<ImageLabel> getLabels() {
+        return labels;
+    }
+
+    /**
+     * Sets the list of labels associated with the image.
+     * @param labels the list of image labels
+     */
+    public void setLabels(List<ImageLabel> labels) {
+        this.labels = labels;
     }
 }
