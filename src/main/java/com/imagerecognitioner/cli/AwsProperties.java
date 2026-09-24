@@ -7,6 +7,7 @@ public class AwsProperties {
     private String region;
     private DynamoDB dynamoDB = new DynamoDB();
     private S3 s3 = new S3();
+    private Rekognition rekognition = new Rekognition();
 
     public String getRegion() {
         return region;
@@ -30,6 +31,14 @@ public class AwsProperties {
 
     public void setS3(S3 s3) {
         this.s3 = s3;
+    }
+
+    public Rekognition getRekognition() {
+        return rekognition;
+    }
+
+    public void setRekognition(Rekognition rekognition) {
+        this.rekognition = rekognition;
     }
 
     public static class DynamoDB {
@@ -72,5 +81,27 @@ public class AwsProperties {
         public void setKeyPrefix(String keyPrefix) {
             this.keyPrefix = keyPrefix;
         }
+    }
+
+    public static class Rekognition {
+        private String endpoint;
+        private Double moderationMinConfidence = 60.0;
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        public Double getModerationMinConfidence() {
+            return moderationMinConfidence;
+        }
+
+        public void setModerationMinConfidence(Double moderationMinConfidence) {
+            this.moderationMinConfidence = moderationMinConfidence;
+        }
+
     }
 }

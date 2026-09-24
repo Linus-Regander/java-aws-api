@@ -11,7 +11,7 @@
 </div>
 
 ## Description
-API for handling images and using **Amazon Rekognition**, for storage of non-GDPR images in **Amazon S3**. (*This is currently done in a local setting*).
+API for handling images and using **Amazon Rekognition** for moderating images and preventing upload of inappropriate content, for storage of non-GDPR images in **Amazon S3**. (*This is currently done in a local setting*).
 
 Image metadata is stored in **Amazon DynamoDB**.
 
@@ -19,12 +19,12 @@ Docker images are stored in Docker Hub, with CI/CD integration via GitHub Action
 
 ## Versioning
 
-**Current version:** 0.6.0
-- Added terraform integration.
-- Removed init in Docker for AWS S3 and DynamoDB, now handled by Terraform and Localstack.
-- Finetuned Localstack integration with authentication, for local setup of AWS services.
+**Current version:** 0.7.0
+- Added Amazon Rekognition integration with client.
+- Added image moderation for tagging and preventing upload of inappropriate images.
+- Updated Terraform and configuration for Rekognition support.
 
-**Next version:** Integration and implementation of AWS Reckognition.
+**Next version:** Authentication and authorization in API.
 
 ## Tech Stack
 | Category | Tools |
@@ -34,7 +34,7 @@ Docker images are stored in Docker Hub, with CI/CD integration via GitHub Action
 | Build | Gradle, **Terraform** |
 | Containers | **Docker**, Docker Compose |
 | CI/CD (GitHub) | **Actions**, CoPilot Agent, Workflows |
-| Cloud (AWS) | **DynamoDB**, **S3**, Localstack |
+| Cloud (AWS) | **DynamoDB**, **S3**, **Rekognition**, Localstack |
 
 ---
 

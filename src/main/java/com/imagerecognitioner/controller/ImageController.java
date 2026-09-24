@@ -1,8 +1,7 @@
 package com.imagerecognitioner.controller;
 
-import com.imagerecognitioner.model.ImageMetadata;
-import com.imagerecognitioner.model.Image;
-
+import com.imagerecognitioner.model.image.ImageResponse;
+import com.imagerecognitioner.model.image.ImageMetadata;
 import com.imagerecognitioner.service.ImageService;
 
 import org.springframework.http.HttpStatus;
@@ -52,19 +51,19 @@ public class ImageController {
      * @return the created ImageMetadata object
      */
     @PostMapping
-    public ResponseEntity<ImageMetadata> publishImage(@RequestParam("file") MultipartFile file, @RequestParam("owner") String owner) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(imageService.publishImage(file, owner));
+    public ResponseEntity<ImageMetadata> publishImage(@RequestParam("file") MultipartFile file, @RequestParam("owner") String owner, @RequestParam(value = "minConfidence", required = false) Float minConfidence) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(imageService.publishImage(file, owner, minConfidence));
     }
 
     /**
      * Updates an existing image object in S3 and its metadata in DynamoDB.
+     * @param file the new image file to upload
      * @param imageId the ID of the ImageMetadata object to update
-     * @param imageMetadata the updated ImageMetadata object
      * @return the updated ImageMetadata object
      */
     @PutMapping("/{imageId}")
-    public ResponseEntity<ImageMetadata> updateImage(@RequestParam("file") MultipartFile file, @PathVariable String imageId) {
-        return ResponseEntity.status(HttpStatus.OK).body(imageService.replaceImage(file, imageId));
+    public ResponseEntity<ImageMetadata> updateImage(@RequestParam("file") MultipartFile file, @PathVariable String imageId, @RequestParam(value = "minConfidence", required = false) Float minConfidence) {
+        return ResponseEntity.status(HttpStatus.OK).body(imageService.replaceImage(file, imageId, minConfidence));
     }
 
     /**
@@ -85,7 +84,7 @@ public class ImageController {
      * @return the Image object containing the metadata and presigned URL
      */
     @GetMapping("/{imageId}")
-    public ResponseEntity<Image> selectImage(@PathVariable String imageId, @RequestParam(value = "expiry", required = false) Long expirySeconds) {
+    public ResponseEntity<ImageResponse> selectImage(@PathVariable String imageId, @RequestParam(value = "expiry", required = false) Long expirySeconds) {
         Duration expiry = expirySeconds != null ? Duration.ofSeconds(expirySeconds) : null;
 
         return ResponseEntity.ok(imageService.selectImage(imageId, expiry));

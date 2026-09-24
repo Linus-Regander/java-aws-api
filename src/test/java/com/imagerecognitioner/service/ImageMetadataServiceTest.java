@@ -1,7 +1,7 @@
 package com.imagerecognitioner.service;
 
 import com.imagerecognitioner.exception.ImageExceptions.ImageMetadataNotFoundException;
-import com.imagerecognitioner.model.ImageMetadata;
+import com.imagerecognitioner.model.image.ImageMetadata;
 import com.imagerecognitioner.repository.ImageMetadataRepositoryInterface;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

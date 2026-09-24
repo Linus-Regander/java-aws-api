@@ -6,7 +6,7 @@ services:
       - "4566:4566"
     environment:
       LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN:-}
-      SERVICES: s3,dynamodb
+      SERVICES: s3,dynamodb,rekognition
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health -o /dev/null"]
       interval: 3s
@@ -17,6 +17,7 @@ services:
   terraform:
     image: hashicorp/terraform:1.9
     container_name: terraform-init
+    user: "${UID:-1000}:${GID:-1000}"
     working_dir: /tf
     volumes:
       - ./terraform:/tf
@@ -36,14 +37,16 @@ services:
     ports:
       - "8080:8080"
     environment:
-      APP_AWS_REGION: eu-north-1
-      APP_AWS_DYNAMO-DB_TABLE-NAME: image-metadata
-      APP_AWS_DYNAMO-DB_ENDPOINT: http://localstack:4566
-      APP_AWS_S3_BUCKET-NAME: image-recognitioner
-      APP_AWS_S3_ENDPOINT: http://localstack:4566
-      APP_AWS_S3_KEY-PREFIX: images/
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
+      APP_AWS_REKOGNITION_ENDPOINT: ${APP_AWS_REKOGNITION_ENDPOINT:-http://localstack:4566}
+      APP_AWS_REKOGNITION_MODERATION_MIN_CONFIDENCE: ${APP_AWS_REKOGNITION_MODERATION_MIN_CONFIDENCE:-60.0}
+      APP_AWS_REGION: ${APP_AWS_REGION:-eu-north-1}
+      APP_AWS_DYNAMO_DB_TABLE_NAME: ${APP_AWS_DYNAMO_DB_TABLE_NAME:-image-metadata}
+      APP_AWS_DYNAMO_DB_ENDPOINT: ${APP_AWS_DYNAMO_DB_ENDPOINT:-http://localstack:4566}
+      APP_AWS_S3_BUCKET_NAME: ${APP_AWS_S3_BUCKET_NAME:-image-recognitioner}
+      APP_AWS_S3_ENDPOINT: ${APP_AWS_S3_ENDPOINT:-http://localstack:4566}
+      APP_AWS_S3_KEY_PREFIX: ${APP_AWS_S3_KEY_PREFIX:-images/}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
     depends_on:
       terraform:
         condition: service_completed_successfully

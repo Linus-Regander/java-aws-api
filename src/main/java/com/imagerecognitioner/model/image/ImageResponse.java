@@ -1,11 +1,11 @@
-package com.imagerecognitioner.model;
+package com.imagerecognitioner.model.image;
 
 import java.net.URL;
 
 /**
  * Represents an image in the system.
  */
-public class Image {
+public class ImageResponse {
     private URL presignedUrl;
     private ImageMetadata imageMetadata;
 
