@@ -1,5 +1,6 @@
 package com.imagerecognitioner.model.image;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 /**
@@ -7,8 +8,11 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
  * ImageLabel
  */
 @DynamoDbBean
+@Schema(description = "Label assigned to an image by Amazon Rekognition.")
 public class ImageLabel {
+    @Schema(description = "Name of the detected label.", example = "Landscape")
     private String label;
+    @Schema(description = "Confidence score for the detected label.", example = "98.5")
     private float confidence;
 
     public ImageLabel() {

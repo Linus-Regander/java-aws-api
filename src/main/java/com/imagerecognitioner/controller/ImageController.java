@@ -4,6 +4,13 @@ import com.imagerecognitioner.model.image.ImageResponse;
 import com.imagerecognitioner.model.image.ImageMetadata;
 import com.imagerecognitioner.service.ImageService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +25,7 @@ import java.time.Duration;
  */
 @RestController
 @RequestMapping("/api/images")
+@Tag(name = "Images", description = "Upload, retrieve, update, and delete images and their metadata")
 public class ImageController {
     private final ImageService imageService;
 
@@ -25,78 +33,86 @@ public class ImageController {
         this.imageService = imageService;
     }
 
-    /**
-     * Retrieves metadata of an Image from DynamoDB.
-     * @param imageId the ID of the ImageMetadata object to retrieve
-     * @return an ImageMetadata object
-     */
+    @Operation(summary = "Get image metadata", description = "Retrieves metadata for one image from DynamoDB.")
+    @ApiResponse(responseCode = "200", description = "Image metadata returned")
+    @ApiResponse(responseCode = "404", description = "Image metadata not found")
     @GetMapping("/{imageId}/metadata")
-    public ResponseEntity<ImageMetadata> getImageMetadata(@PathVariable String imageId) {
+    public ResponseEntity<ImageMetadata> getImageMetadata(
+            @Parameter(description = "The image identifier", required = true, in = ParameterIn.PATH)
+            @PathVariable String imageId) {
         return ResponseEntity.ok(imageService.selectImageMetadata(imageId));
     }
 
-    /**
-     * Retrieves all ImageMetadata objects from DynamoDB.
-     * @return a list of ImageMetadata objects
-     */
+    @Operation(summary = "List image metadata", description = "Retrieves metadata for all images from DynamoDB.")
+    @ApiResponse(responseCode = "200", description = "Image metadata returned")
     @GetMapping("/metadata")
     public ResponseEntity<List<ImageMetadata>> getAllImageMetadata() {
         return ResponseEntity.ok(imageService.selectAllImageMetadata());
     }
 
-    /**
-     * Publishes a new image to S3 and stores the metadata in DynamoDB.
-     * @param file the image file to upload
-     * @param owner the owner of the image
-     * @return the created ImageMetadata object
-     */
+    @Operation(summary = "Upload an image", description = "Uploads an image to S3, moderates it with Amazon Rekognition, and stores its metadata in DynamoDB.")
+    @ApiResponse(responseCode = "201", description = "Image uploaded and metadata created")
+    @ApiResponse(responseCode = "400", description = "Invalid image or moderation confidence")
+    @ApiResponse(responseCode = "422", description = "Image moderation rejected the image")
     @PostMapping
-    public ResponseEntity<ImageMetadata> publishImage(@RequestParam("file") MultipartFile file, @RequestParam("owner") String owner, @RequestParam(value = "minConfidence", required = false) Float minConfidence) {
+    public ResponseEntity<ImageMetadata> publishImage(
+            @Parameter(description = "Image file to upload", required = true, schema = @Schema(type = "string", format = "binary"))
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Owner of the image", required = true)
+            @RequestParam("owner") String owner,
+            @Parameter(description = "Minimum Rekognition moderation confidence")
+            @RequestParam(value = "minConfidence", required = false) Float minConfidence) {
         return ResponseEntity.status(HttpStatus.CREATED).body(imageService.publishImage(file, owner, minConfidence));
     }
 
-    /**
-     * Updates an existing image object in S3 and its metadata in DynamoDB.
-     * @param file the new image file to upload
-     * @param imageId the ID of the ImageMetadata object to update
-     * @return the updated ImageMetadata object
-     */
+    @Operation(summary = "Replace an image", description = "Replaces an existing image in S3 and updates its metadata in DynamoDB.")
+    @ApiResponse(responseCode = "200", description = "Image replaced and metadata updated")
+    @ApiResponse(responseCode = "404", description = "Image metadata not found")
+    @ApiResponse(responseCode = "422", description = "Image moderation rejected the image")
     @PutMapping("/{imageId}")
-    public ResponseEntity<ImageMetadata> updateImage(@RequestParam("file") MultipartFile file, @PathVariable String imageId, @RequestParam(value = "minConfidence", required = false) Float minConfidence) {
+    public ResponseEntity<ImageMetadata> updateImage(
+            @Parameter(description = "Image file to upload", required = true, schema = @Schema(type = "string", format = "binary"))
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "The image identifier", required = true, in = ParameterIn.PATH)
+            @PathVariable String imageId,
+            @Parameter(description = "Minimum Rekognition moderation confidence")
+            @RequestParam(value = "minConfidence", required = false) Float minConfidence) {
         return ResponseEntity.status(HttpStatus.OK).body(imageService.replaceImage(file, imageId, minConfidence));
     }
 
-    /**
-     * Updates the metadata of an existing image.
-     * @param imageId the ID of the ImageMetadata object to update
-     * @param imageMetadata the updated ImageMetadata object
-     * @return the updated ImageMetadata object
-     */
+    @Operation(summary = "Update image metadata", description = "Updates metadata for an existing image.")
+    @ApiResponse(responseCode = "200", description = "Image metadata updated")
+    @ApiResponse(responseCode = "404", description = "Image metadata not found")
     @PatchMapping("/{imageId}/metadata")
-    public ResponseEntity<ImageMetadata> updateImageMetadata(@PathVariable String imageId,@RequestBody ImageMetadata imageMetadata) {
+    public ResponseEntity<ImageMetadata> updateImageMetadata(
+            @Parameter(description = "The image identifier", required = true, in = ParameterIn.PATH)
+            @PathVariable String imageId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Updated image metadata", required = true)
+            @RequestBody ImageMetadata imageMetadata) {
         return ResponseEntity.ok(imageService.updateMetadata(imageId, imageMetadata));
     }
 
-    /**
-     * Retrieves the metadata and presigned URL for an image by its ID.
-     * @param imageId the ID of the image to retrieve
-     * @param expirySeconds the duration for which the presigned URL should be valid
-     * @return the Image object containing the metadata and presigned URL
-     */
+    @Operation(summary = "Get an image", description = "Retrieves image metadata and a presigned S3 URL.")
+    @ApiResponse(responseCode = "200", description = "Image metadata and presigned URL returned")
+    @ApiResponse(responseCode = "404", description = "Image metadata not found")
     @GetMapping("/{imageId}")
-    public ResponseEntity<ImageResponse> selectImage(@PathVariable String imageId, @RequestParam(value = "expiry", required = false) Long expirySeconds) {
+    public ResponseEntity<ImageResponse> selectImage(
+            @Parameter(description = "The image identifier", required = true, in = ParameterIn.PATH)
+            @PathVariable String imageId,
+            @Parameter(description = "Presigned URL validity in seconds")
+            @RequestParam(value = "expiry", required = false) Long expirySeconds) {
         Duration expiry = expirySeconds != null ? Duration.ofSeconds(expirySeconds) : null;
 
         return ResponseEntity.ok(imageService.selectImage(imageId, expiry));
     }
 
-    /**
-     * Deletes an Image from S3 Bucket and the metadata from DynamoDB.
-     * @param imageId the ID of the image to delete
-     * @return a ResponseEntity with no content
-     */
+    @Operation(summary = "Delete an image", description = "Deletes an image from S3 and its metadata from DynamoDB.")
+    @ApiResponse(responseCode = "204", description = "Image deleted")
+    @ApiResponse(responseCode = "404", description = "Image metadata not found")
     @DeleteMapping("/{imageId}")
-    public ResponseEntity<Void> deleteImage(@PathVariable String imageId) {
+    public ResponseEntity<Void> deleteImage(
+            @Parameter(description = "The image identifier", required = true, in = ParameterIn.PATH)
+            @PathVariable String imageId) {
         imageService.deleteImage(imageId);
 
         return ResponseEntity.noContent().build();

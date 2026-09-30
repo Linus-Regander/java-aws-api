@@ -19,12 +19,35 @@ Docker images are stored in Docker Hub, with CI/CD integration via GitHub Action
 
 ## Versioning
 
-**Current version:** 0.7.0
+**Current version:** 0.8.0
+- Added OpenAPI documentation and Swagger UI for the REST API.
+- Documented image upload, retrieval, metadata, replacement, and deletion endpoints.
+
+**Previous version:** 0.7.0
 - Added Amazon Rekognition integration with client.
 - Added image moderation for tagging and preventing upload of inappropriate images.
 - Updated Terraform and configuration for Rekognition support.
 
 **Next version:** Authentication and authorization in API.
+
+## API Documentation
+
+When the application is running on the default port, interactive API documentation is available at:
+
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- OpenAPI specification: http://localhost:8080/v3/api-docs
+
+### Image endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/images` | Upload and moderate an image |
+| `GET` | `/api/images/{imageId}` | Retrieve an image and presigned URL |
+| `PUT` | `/api/images/{imageId}` | Replace an image |
+| `DELETE` | `/api/images/{imageId}` | Delete an image |
+| `GET` | `/api/images/metadata` | List all image metadata |
+| `GET` | `/api/images/{imageId}/metadata` | Retrieve image metadata |
+| `PATCH` | `/api/images/{imageId}/metadata` | Update image metadata |
 
 ## Tech Stack
 | Category | Tools |
@@ -41,6 +64,6 @@ Docker images are stored in Docker Hub, with CI/CD integration via GitHub Action
 <div align="center">
 
 **Developed by** Linus Regander
-**Latest update:** 2026-09-21
+**Latest update:** 2026-09-30
 
 </div>
