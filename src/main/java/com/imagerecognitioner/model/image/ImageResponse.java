@@ -1,12 +1,17 @@
 package com.imagerecognitioner.model.image;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.net.URL;
 
 /**
  * Represents an image in the system.
  */
+@Schema(description = "Image metadata together with a temporary URL for accessing the image.")
 public class ImageResponse {
+    @Schema(description = "Presigned URL for accessing the image in Amazon S3.", format = "uri")
     private URL presignedUrl;
+    @Schema(description = "Metadata associated with the image.")
     private ImageMetadata imageMetadata;
 
     /**

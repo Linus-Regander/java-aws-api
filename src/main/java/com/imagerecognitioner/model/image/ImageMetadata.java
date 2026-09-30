@@ -1,5 +1,6 @@
 package com.imagerecognitioner.model.image;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
@@ -12,17 +13,29 @@ import java.util.List;
  */
 
 @DynamoDbBean
+@Schema(description = "Metadata for an image stored in Amazon S3 and indexed in DynamoDB.")
 public class ImageMetadata {
+    @Schema(description = "Unique identifier of the image.")
     private String imageId;
+    @Schema(description = "Original name of the uploaded file.")
     private String fileName;
+    @Schema(description = "MIME type of the image.", example = "image/jpeg")
     private String contentType;
+    @Schema(description = "Object key used to locate the image in Amazon S3.")
     private String s3Key;
+    @Schema(description = "Amazon S3 bucket containing the image.")
     private String s3Bucket;
+    @Schema(description = "Owner associated with the image.")
     private String owner;
+    @Schema(description = "Image size in bytes.", format = "int64")
     private Long sizeBytes;
+    @Schema(description = "Timestamp when the image metadata was created.", format = "date-time")
     private Instant createdAt;
+    @Schema(description = "Timestamp when the image metadata was last updated.", format = "date-time")
     private Instant updatedAt;
+    @Schema(description = "Current processing status of the image.")
     private ImageStatus imageStatus;
+    @Schema(description = "Labels assigned to the image by Amazon Rekognition.")
     private List<ImageLabel> labels;
 
     /**
